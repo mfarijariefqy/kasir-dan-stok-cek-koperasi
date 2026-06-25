@@ -89,18 +89,18 @@
     <tbody>
         @forelse($transactions as $idx => $trx)
             @php
-                $hpp    = $trx->items->sum(fn($i) => $i->buy_price * $i->qty);
-                $profit = $trx->total - $hpp;
-                $margin = $trx->total > 0 ? $profit / $trx->total * 100 : 0;
+                $hpp    = $trx->display_hpp;
+                $profit = $trx->display_profit;
+                $margin = $trx->display_total > 0 ? $profit / $trx->display_total * 100 : 0;
             @endphp
             <tr class="{{ $idx % 2 === 1 ? 'even' : '' }}">
                 <td>{{ $trx->trx_no }}</td>
                 <td>{{ $trx->user->name ?? '-' }}</td>
-                @if(auth()->user()->isSuperAdmin())<td>{{ $trx->branch->name ?? '-' }}</td>@endif
+                @if(auth()->user()->isSuperAdmin())<td>{{ $trx->branches()->pluck('name')->implode(', ') ?: '-' }}</td>@endif
                 <td>{{ $trx->customer_name ?? '-' }}</td>
                 <td>{{ $trx->payment_method }}</td>
                 <td class="{{ $trx->payment_status === 'Lunas' ? 'green' : 'red' }}">{{ $trx->payment_status }}</td>
-                <td class="tr">Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                <td class="tr">Rp {{ number_format($trx->display_total, 0, ',', '.') }}</td>
                 <td class="tr muted">Rp {{ number_format($hpp, 0, ',', '.') }}</td>
                 <td class="tr {{ $profit >= 0 ? 'green' : 'red' }}">Rp {{ number_format($profit, 0, ',', '.') }}</td>
                 <td class="tc">{{ number_format($margin, 1) }}%</td>

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TransactionItem extends Model
 {
     protected $fillable = [
-        'transaction_id', 'product_id', 'qty',
+        'transaction_id', 'product_id', 'branch_id', 'qty',
         'buy_price', 'sell_price', 'subtotal',
     ];
 
@@ -26,5 +26,10 @@ class TransactionItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

@@ -31,7 +31,7 @@
                             <tr><th width="130">No. Transaksi</th><td>{{ $transaction->trx_no }}</td></tr>
                             <tr><th>Tanggal</th><td>{{ $transaction->trx_date->format('d F Y') }}</td></tr>
                             <tr><th>Kasir</th><td>{{ $transaction->user->name ?? '-' }}</td></tr>
-                            <tr><th>Cabang</th><td>{{ $transaction->branch->name ?? '-' }}</td></tr>
+                            <tr><th>Cabang</th><td>@include('partials._branch_badges', ['branches' => $transaction->branches()])</td></tr>
                             <tr><th>Pelanggan</th><td>{{ $transaction->customer_name ?? '-' }}</td></tr>
                         </table>
                     </div>
@@ -82,7 +82,7 @@
                                 <td>{{ $item->product->name ?? '-' }}</td>
                                 <td>
                                     <span class="badge badge-light border">
-                                        {{ $item->product->branch->name ?? '-' }}
+                                        {{ $item->branch->name ?? '-' }}
                                     </span>
                                 </td>
                                 <td><code>{{ $item->product->barcode ?? '-' }}</code></td>

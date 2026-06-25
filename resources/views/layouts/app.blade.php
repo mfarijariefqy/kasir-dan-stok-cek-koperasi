@@ -94,6 +94,13 @@
             });
         @endif
 
+        @if($errors->any())
+            Toast.fire({
+                icon: 'error',
+                title: @json($errors->first())
+            });
+        @endif
+
         // Add loading state to submit buttons
         $(document).on('submit', 'form:not([data-no-loading])', function () {
             const btn = $(this).find('[type="submit"]');

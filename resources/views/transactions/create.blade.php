@@ -12,55 +12,6 @@
 <form id="trxForm" action="{{ route('transactions.store') }}" method="POST">
 @csrf
 
-{{-- branch_id = cabang tempat transaksi dicatat (bukan cabang asal barang) --}}
-<input type="hidden" name="branch_id"          id="trxBranchId"    value="{{ $defaultBranchId ?? '' }}">
-<input type="hidden" name="save_default_branch" id="hdnSaveDefault" value="0">
-
-{{-- ── Top Bar: Cabang Transaksi + Default ─────────────────────────────── --}}
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="d-flex flex-wrap align-items-center" style="gap:14px;">
-            <span class="font-weight-bold text-nowrap">
-                <i class="fas fa-store mr-1 text-primary"></i> Cabang Transaksi:
-            </span>
-
-            @if(auth()->user()->isSuperAdmin())
-                <select id="trxBranchSelect" class="form-control form-control-sm" style="max-width:220px;">
-                    <option value="">-- Pilih Cabang --</option>
-                    @foreach($branches as $b)
-                        <option value="{{ $b->id }}" {{ $defaultBranchId == $b->id ? 'selected' : '' }}>
-                            {{ $b->name }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" id="chkSaveDefault"
-                        {{ $defaultBranchId ? 'checked' : '' }}>
-                    <label class="custom-control-label small" for="chkSaveDefault">
-                        Simpan sebagai default
-                    </label>
-                </div>
-            @else
-                {{-- Non-super-admin: cabang terkunci ke cabang user --}}
-                <span class="badge badge-primary px-3 py-2">
-                    <i class="fas fa-map-marker-alt mr-1"></i>
-                    {{ auth()->user()->branch->name ?? 'Belum ada cabang' }}
-                </span>
-            @endif
-
-            <span id="trxBranchBadge" class="badge px-3 py-2
-                {{ $defaultBranchId ? 'badge-success' : 'badge-secondary' }} ml-auto">
-                @if($defaultBranchId)
-                    @php $sel = $branches->firstWhere('id', $defaultBranchId) @endphp
-                    <i class="fas fa-check-circle mr-1"></i> Transaksi: {{ $sel->name ?? '-' }}
-                @else
-                    <i class="fas fa-exclamation-circle mr-1"></i> Belum pilih cabang transaksi
-                @endif
-            </span>
-        </div>
-    </div>
-</div>
-
 <div class="row">
     {{-- ── Kiri: Scan / Cari Produk ──────────────────────────────────────── --}}
     <div class="col-md-8">
@@ -79,9 +30,7 @@
                     <select id="searchBranchSelect" class="form-control form-control-sm">
                         <option value="">-- Semua Cabang --</option>
                         @foreach($branches as $b)
-                            <option value="{{ $b->id }}" {{ $defaultBranchId == $b->id ? 'selected' : '' }}>
-                                {{ $b->name }}
-                            </option>
+                            <option value="{{ $b->id }}">{{ $b->name }}</option>
                         @endforeach
                     </select>
                     <small class="text-muted">Ganti cabang kapan saja — item di keranjang tidak terhapus</small>
@@ -212,39 +161,6 @@
 let cart = [];
 const formatRp = v => 'Rp ' + parseInt(v).toLocaleString('id-ID');
 
-// ── Top bar: cabang transaksi (super-admin only) ────────────────────────────
-@if(auth()->user()->isSuperAdmin())
-const trxBranchSelect = document.getElementById('trxBranchSelect');
-const chkSaveDefault  = document.getElementById('chkSaveDefault');
-
-function syncTrxBranch() {
-    const val  = trxBranchSelect.value;
-    const text = trxBranchSelect.options[trxBranchSelect.selectedIndex]?.text ?? '';
-    document.getElementById('trxBranchId').value = val;
-    document.getElementById('hdnSaveDefault').value = chkSaveDefault.checked ? '1' : '0';
-
-    const badge = document.getElementById('trxBranchBadge');
-    if (val) {
-        badge.className = 'badge badge-success px-3 py-2 ml-auto';
-        badge.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Transaksi: ${text}`;
-        // Pre-fill search branch jika belum dipilih
-        if (!document.getElementById('searchBranchSelect').value) {
-            document.getElementById('searchBranchSelect').value = val;
-        }
-    } else {
-        badge.className = 'badge badge-secondary px-3 py-2 ml-auto';
-        badge.innerHTML = `<i class="fas fa-exclamation-circle mr-1"></i> Belum pilih cabang transaksi`;
-    }
-}
-
-trxBranchSelect.addEventListener('change', syncTrxBranch);
-chkSaveDefault.addEventListener('change', () => {
-    document.getElementById('hdnSaveDefault').value = chkSaveDefault.checked ? '1' : '0';
-});
-@else
-// Non-super-admin: branch_id sudah di-set dari backend, tidak bisa diubah
-@endif
-
 // ── Search branch: bebas diganti tanpa pengaruh ke cart ───────────────────
 // (tidak ada event listener yang hapus cart)
 
@@ -294,6 +210,10 @@ async function searchProduct(term, isBarcode = false) {
 }
 
 // ── Cart ───────────────────────────────────────────────────────────────────
+function updateSimpanState() {
+    document.getElementById('btnSimpan').disabled = cart.length === 0;
+}
+
 function renderCart() {
     const tbody = document.getElementById('cartBody');
     tbody.innerHTML = '';
@@ -301,7 +221,7 @@ function renderCart() {
     if (cart.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">'
             + '<i class="fas fa-shopping-cart mr-1"></i> Keranjang kosong</td></tr>';
-        document.getElementById('btnSimpan').disabled = true;
+        updateSimpanState();
         return;
     }
 
@@ -340,7 +260,7 @@ function renderCart() {
 
     document.getElementById('totalDisplay').textContent = formatRp(total);
     document.getElementById('totalInput').value = total;
-    document.getElementById('btnSimpan').disabled = false;
+    updateSimpanState();
 }
 
 function addToCart(product) {

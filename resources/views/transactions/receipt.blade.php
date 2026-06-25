@@ -323,12 +323,6 @@
                     <td><strong>{{ $transaction->customer_name }}</strong></td>
                 </tr>
                 @endif
-                @if($transaction->branch)
-                <tr>
-                    <td>Cabang</td>
-                    <td><strong>{{ $transaction->branch->name }}</strong></td>
-                </tr>
-                @endif
             </table>
         </div>
         <div class="info-col">

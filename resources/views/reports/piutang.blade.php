@@ -82,8 +82,8 @@
                             <td>{{ $trx->trx_date->format('d/m/Y') }}</td>
                             <td>{{ $trx->customer_name ?? '-' }}</td>
                             <td>{{ $trx->user->name ?? '-' }}</td>
-                            @if(auth()->user()->isSuperAdmin()) <td>{{ $trx->branch->name ?? '-' }}</td> @endif
-                            <td class="text-right text-danger font-weight-bold">Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                            @if(auth()->user()->isSuperAdmin()) <td>@include('partials._branch_badges', ['branches' => $trx->branches()])</td> @endif
+                            <td class="text-right text-danger font-weight-bold">Rp {{ number_format($trx->branch_total ?? $trx->total, 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="7" class="text-center text-muted py-4">Tidak ada piutang</td></tr>

@@ -26,8 +26,9 @@
                         </div>
                         <div class="text-muted small mt-1">
                             {{ $trx->trx_date->format('d/m/Y') }}
-                            @if($trx->branch)
-                                &nbsp;&middot;&nbsp; {{ $trx->branch->name }}
+                            @php($branchNames = $trx->branches()->pluck('name')->implode(', '))
+                            @if($branchNames)
+                                &nbsp;&middot;&nbsp; {{ $branchNames }}
                             @endif
                             &nbsp;&middot;&nbsp; {{ $trx->items->count() }} item
                         </div>

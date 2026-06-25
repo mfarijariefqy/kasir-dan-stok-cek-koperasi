@@ -172,18 +172,18 @@
                         <tbody>
                             @forelse($transactions as $trx)
                                 @php
-                                    $trxHPP    = $trx->items->sum(fn($i) => $i->buy_price * $i->qty);
-                                    $trxProfit = $trx->total - $trxHPP;
-                                    $trxMargin = $trx->total > 0 ? $trxProfit / $trx->total * 100 : 0;
+                                    $trxHPP    = $trx->display_hpp;
+                                    $trxProfit = $trx->display_profit;
+                                    $trxMargin = $trx->display_total > 0 ? $trxProfit / $trx->display_total * 100 : 0;
                                 @endphp
                                 <tr>
                                     <td><a href="{{ route('transactions.show', $trx) }}">{{ $trx->trx_no }}</a></td>
                                     <td>{{ $trx->user->name ?? '-' }}</td>
-                                    @if(auth()->user()->isSuperAdmin()) <td>{{ $trx->branch->name ?? '-' }}</td> @endif
+                                    @if(auth()->user()->isSuperAdmin()) <td>@include('partials._branch_badges', ['branches' => $trx->branches()])</td> @endif
                                     <td>{{ $trx->customer_name ?? '-' }}</td>
                                     <td><span class="badge {{ $trx->payment_method === 'Cash' ? 'badge-success' : 'badge-warning' }}">{{ $trx->payment_method }}</span></td>
                                     <td><span class="badge {{ $trx->payment_status === 'Lunas' ? 'badge-success' : 'badge-danger' }}">{{ $trx->payment_status }}</span></td>
-                                    <td class="text-right">Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                                    <td class="text-right">Rp {{ number_format($trx->display_total, 0, ',', '.') }}</td>
                                     <td class="text-right text-secondary">Rp {{ number_format($trxHPP, 0, ',', '.') }}</td>
                                     <td class="text-right {{ $trxProfit >= 0 ? 'text-success' : 'text-danger' }} font-weight-bold">
                                         Rp {{ number_format($trxProfit, 0, ',', '.') }}

@@ -24,7 +24,7 @@ class CustomerPortalController extends Controller
         }
 
         $transactions = Transaction::where('customer_id', $customer->id)
-            ->with(['items.product', 'branch'])
+            ->with(['items.product', 'items.branch'])
             ->latest()
             ->paginate(10);
 
@@ -34,7 +34,7 @@ class CustomerPortalController extends Controller
     public function show(Transaction $transaction)
     {
         Gate::authorize('viewOwn', $transaction);
-        $transaction->load('items.product', 'branch');
+        $transaction->load('items.product', 'items.branch');
 
         return view('portal.transactions.show', compact('transaction'));
     }

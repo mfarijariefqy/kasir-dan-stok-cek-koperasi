@@ -26,12 +26,10 @@
                         <td class="text-muted pl-3">Tanggal</td>
                         <td><strong>{{ $transaction->trx_date->format('d/m/Y') }}</strong></td>
                     </tr>
-                    @if($transaction->branch)
                     <tr>
                         <td class="text-muted pl-3">Cabang</td>
-                        <td><strong>{{ $transaction->branch->name }}</strong></td>
+                        <td>@include('partials._branch_badges', ['branches' => $transaction->branches()])</td>
                     </tr>
-                    @endif
                     <tr>
                         <td class="text-muted pl-3">Cara Bayar</td>
                         <td>

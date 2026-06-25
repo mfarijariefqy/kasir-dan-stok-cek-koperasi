@@ -106,7 +106,7 @@
                             <td>{{ $trx->customer_name ?? '-' }}</td>
                             <td>{{ $trx->user->name ?? '-' }}</td>
                             @if(auth()->user()->isSuperAdmin())
-                                <td>{{ $trx->branch->name ?? '-' }}</td>
+                                <td>@include('partials._branch_badges', ['branches' => $trx->branches()])</td>
                             @endif
                             <td>
                                 <span class="badge {{ $trx->payment_method === 'Cash' ? 'badge-success' : 'badge-warning' }}">

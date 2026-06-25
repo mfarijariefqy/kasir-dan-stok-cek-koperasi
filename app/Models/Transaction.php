@@ -44,4 +44,13 @@ class Transaction extends Model
     {
         return $this->payment_status === 'Belum Lunas';
     }
+
+    /**
+     * Distinct branches the items in this transaction actually came from.
+     * Requires items.branch to be eager-loaded to avoid N+1.
+     */
+    public function branches()
+    {
+        return $this->items->pluck('branch')->filter()->unique('id')->values();
+    }
 }

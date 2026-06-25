@@ -2,7 +2,6 @@
 
 namespace App\Exports\Sheets;
 
-use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,52 +28,41 @@ class MonthlyDailySheet implements FromCollection, WithHeadings, WithTitle, With
         $start        = Carbon::parse($month . '-01')->startOfMonth();
         $end          = Carbon::parse($month . '-01')->endOfMonth();
 
-        $query = Transaction::selectRaw(
-            'DATE(trx_date) as date, COUNT(*) as count, SUM(total) as total,
-             SUM(CASE WHEN payment_status = "Lunas" THEN total ELSE 0 END) as lunas,
-             SUM(CASE WHEN payment_status = "Belum Lunas" THEN total ELSE 0 END) as tempo'
-        )->whereBetween('trx_date', [$start, $end])->groupBy('date')->orderBy('date');
-
-        if (! $user->isSuperAdmin() && $user->branch_id) {
-            $query->where('branch_id', $user->branch_id);
-        } elseif ($user->isSuperAdmin() && $branchId) {
-            $query->where('branch_id', $branchId);
-        }
-        if ($userId)       $query->where('user_id', $userId);
-        if ($customerName) $query->where('customer_name', 'like', '%' . $customerName . '%');
-
-        $summary = $query->get();
-
-        $hppByDate = DB::table('transaction_items')
+        $summary = DB::table('transaction_items')
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->whereBetween('transactions.trx_date', [$start, $end])
             ->when(! $user->isSuperAdmin() && $user->branch_id,
-                fn($q) => $q->where('transactions.branch_id', $user->branch_id))
+                fn($q) => $q->where('transaction_items.branch_id', $user->branch_id))
             ->when($user->isSuperAdmin() && $branchId,
-                fn($q) => $q->where('transactions.branch_id', $branchId))
+                fn($q) => $q->where('transaction_items.branch_id', $branchId))
             ->when($userId,       fn($q) => $q->where('transactions.user_id', $userId))
             ->when($customerName, fn($q) => $q->where('transactions.customer_name', 'like', '%' . $customerName . '%'))
-            ->whereBetween('transactions.trx_date', [$start, $end])
-            ->selectRaw('DATE(transactions.trx_date) as date, SUM(transaction_items.buy_price * transaction_items.qty) as hpp')
-            ->groupBy('date')
-            ->pluck('hpp', 'date');
+            ->selectRaw('DATE(transactions.trx_date) as date,
+                COUNT(DISTINCT transactions.id) as count,
+                SUM(transaction_items.subtotal) as total,
+                SUM(CASE WHEN transactions.payment_status = "Lunas" THEN transaction_items.subtotal ELSE 0 END) as lunas,
+                SUM(CASE WHEN transactions.payment_status = "Belum Lunas" THEN transaction_items.subtotal ELSE 0 END) as tempo,
+                SUM(transaction_items.buy_price * transaction_items.qty) as hpp')
+            ->groupBy('date')->orderBy('date')->get();
 
-        $rows = $summary->map(function ($row) use ($hppByDate) {
-            $hpp    = (float) ($hppByDate[$row->date] ?? 0);
-            $profit = $row->total - $hpp;
+        $rows = $summary->map(function ($row) {
+            $hpp    = (float) $row->hpp;
+            $total  = (float) $row->total;
+            $profit = $total - $hpp;
             return [
                 Carbon::parse($row->date)->format('d/m/Y'),
                 (int) $row->count,
-                (float) $row->total,
+                $total,
                 (float) ($row->lunas ?? 0),
                 (float) ($row->tempo ?? 0),
                 $hpp,
                 $profit,
-                $row->total > 0 ? round($profit / $row->total * 100, 1) : 0,
+                $total > 0 ? round($profit / $total * 100, 1) : 0,
             ];
         });
 
         $totalSales  = (float) $summary->sum('total');
-        $totalHPP    = (float) $hppByDate->sum();
+        $totalHPP    = (float) $summary->sum('hpp');
         $totalProfit = $totalSales - $totalHPP;
 
         $rows->push([

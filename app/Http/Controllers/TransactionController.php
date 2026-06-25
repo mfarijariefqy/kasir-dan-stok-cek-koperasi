@@ -18,10 +18,10 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $user  = auth()->user();
-        $query = Transaction::with(['user', 'branch']);
+        $query = Transaction::with(['user', 'items.branch']);
 
         if (! $user->isSuperAdmin() && $user->branch_id) {
-            $query->where('branch_id', $user->branch_id);
+            $query->whereHas('items', fn($q) => $q->where('branch_id', $user->branch_id));
         }
 
         $query->when($request->date_from,      fn($q) => $q->whereDate('trx_date', '>=', $request->date_from))
@@ -45,13 +45,10 @@ class TransactionController extends Controller
 
     public function create()
     {
-        $user      = auth()->user();
         $branches  = Branch::where('is_active', true)->orderBy('name')->get();
         $customers = Customer::active()->orderBy('name')->get(['id', 'name', 'phone']);
 
-        $defaultBranchId = session('default_branch_id', $user->branch_id);
-
-        return view('transactions.create', compact('branches', 'defaultBranchId', 'customers'));
+        return view('transactions.create', compact('branches', 'customers'));
     }
 
     public function store(Request $request)
@@ -63,20 +60,11 @@ class TransactionController extends Controller
             'customer_id'        => 'nullable|exists:customers,id',
             'customer_name'      => 'nullable|string|max:255',
             'payment_method'     => 'required|in:Cash,Tempo',
-            'branch_id'          => 'nullable|exists:branches,id',
         ]);
-
-        $user     = auth()->user();
-        $branchId = $request->filled('branch_id') ? (int) $request->branch_id : $user->branch_id;
-
-        if ($request->input('save_default_branch') == '1' && $branchId) {
-            session(['default_branch_id' => $branchId]);
-        }
 
         try {
             $transaction = $this->transactionService->create(
-                user: $user,
-                branchId: $branchId,
+                user: auth()->user(),
                 items: $request->items,
                 paymentMethod: $request->payment_method,
                 customerName: $request->customer_name,
@@ -92,13 +80,13 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction)
     {
-        $transaction->load('items.product.branch', 'user', 'branch');
+        $transaction->load('items.product', 'items.branch', 'user');
         return view('transactions.show', compact('transaction'));
     }
 
     public function receipt(Transaction $transaction)
     {
-        $transaction->load('items.product', 'user', 'branch');
+        $transaction->load('items.product', 'user');
         return view('transactions.receipt', compact('transaction'));
     }
 

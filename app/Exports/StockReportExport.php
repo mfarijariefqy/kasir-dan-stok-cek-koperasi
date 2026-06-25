@@ -33,6 +33,7 @@ class StockReportExport implements FromCollection, WithHeadings, WithTitle, With
                 ->whereBetween('logged_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])->sum('qty');
             $out = ProductLog::where('product_id', $p->id)->where('type', 'OUT')
                 ->whereBetween('logged_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])->sum('qty');
+            $stokAkhir = $p->stockAt($dateTo);
 
             return [
                 'Nama Produk'  => $p->name,
@@ -40,10 +41,10 @@ class StockReportExport implements FromCollection, WithHeadings, WithTitle, With
                 'Kategori'     => $p->category->name ?? '-',
                 'Cabang'       => $p->branch->name ?? '-',
                 'Satuan'       => $p->unit,
-                'Stok Awal'    => $p->stock_qty - $in + $out,
+                'Stok Awal'    => $stokAkhir - $in + $out,
                 'Stok Masuk'   => $in,
                 'Stok Keluar'  => $out,
-                'Stok Akhir'   => $p->stock_qty,
+                'Stok Akhir'   => $stokAkhir,
             ];
         });
     }

@@ -20,43 +20,51 @@ class DailyTransactionSheet implements FromCollection, WithHeadings, WithTitle, 
 
     public function collection()
     {
-        $user         = auth()->user();
-        $date         = $this->request->input('date', today()->toDateString());
-        $branchId     = $this->request->input('branch_id');
-        $userId       = $this->request->input('user_id');
-        $customerName = $this->request->input('customer_name');
+        $user           = auth()->user();
+        $date           = $this->request->input('date', today()->toDateString());
+        $branchId       = $this->request->input('branch_id');
+        $userId         = $this->request->input('user_id');
+        $customerName   = $this->request->input('customer_name');
+        $scopedBranchId = ! $user->isSuperAdmin() ? $user->branch_id : ($branchId ?: null);
 
-        $query = Transaction::with(['items', 'user', 'branch'])->whereDate('trx_date', $date);
-        if (! $user->isSuperAdmin() && $user->branch_id) {
-            $query->where('branch_id', $user->branch_id);
-        } elseif ($user->isSuperAdmin() && $branchId) {
-            $query->where('branch_id', $branchId);
+        $query = Transaction::with(['items.branch', 'user'])->whereDate('trx_date', $date);
+        if ($scopedBranchId) {
+            $query->whereHas('items', fn($q) => $q->where('branch_id', $scopedBranchId));
         }
         if ($userId)       $query->where('user_id', $userId);
         if ($customerName) $query->where('customer_name', 'like', '%' . $customerName . '%');
 
-        $transactions = $query->get();
+        // Each transaction's figures are that branch's portion of its items when
+        // scoped to one branch, or the full transaction when viewing all branches.
+        $transactions = $query->get()->map(function ($trx) use ($scopedBranchId) {
+            $items = $scopedBranchId ? $trx->items->where('branch_id', $scopedBranchId) : $trx->items;
+
+            $trx->display_total  = $scopedBranchId ? (float) $items->sum('subtotal') : (float) $trx->total;
+            $trx->display_hpp    = (float) $items->sum(fn($i) => $i->buy_price * $i->qty);
+            $trx->display_profit = $trx->display_total - $trx->display_hpp;
+            $trx->branch_names   = $trx->items->pluck('branch.name')->filter()->unique()->implode(', ') ?: '-';
+
+            return $trx;
+        });
 
         $rows = $transactions->map(function ($trx) {
-            $hpp    = $trx->items->sum(fn($i) => $i->buy_price * $i->qty);
-            $profit = $trx->total - $hpp;
             return [
                 $trx->trx_no,
                 $trx->trx_date->format('d/m/Y'),
                 $trx->customer_name ?? '-',
                 $trx->user->name ?? '-',
-                $trx->branch->name ?? '-',
+                $trx->branch_names,
                 $trx->payment_method,
                 $trx->payment_status,
-                (float) $trx->total,
-                (float) $hpp,
-                (float) $profit,
-                $trx->total > 0 ? round($profit / $trx->total * 100, 1) : 0,
+                $trx->display_total,
+                $trx->display_hpp,
+                $trx->display_profit,
+                $trx->display_total > 0 ? round($trx->display_profit / $trx->display_total * 100, 1) : 0,
             ];
         });
 
-        $totalSales  = (float) $transactions->sum('total');
-        $totalHPP    = (float) $transactions->sum(fn($t) => $t->items->sum(fn($i) => $i->buy_price * $i->qty));
+        $totalSales  = (float) $transactions->sum('display_total');
+        $totalHPP    = (float) $transactions->sum('display_hpp');
         $totalProfit = $totalSales - $totalHPP;
 
         $rows->push([

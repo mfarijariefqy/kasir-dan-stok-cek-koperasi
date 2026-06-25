@@ -43,4 +43,18 @@ class Product extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Reconstruct stock as of the end of $dateTo by undoing movements logged after it.
+     * stock_qty always reflects "now", so historical ranges must back it out.
+     */
+    public function stockAt(string $dateTo): int
+    {
+        $netAfter = $this->productLogs()
+            ->where('logged_at', '>', $dateTo . ' 23:59:59')
+            ->selectRaw("SUM(CASE WHEN type = 'IN' THEN qty ELSE -qty END) as net")
+            ->value('net');
+
+        return $this->stock_qty - (int) ($netAfter ?? 0);
+    }
 }

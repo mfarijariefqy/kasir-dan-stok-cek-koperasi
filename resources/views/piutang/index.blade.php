@@ -102,10 +102,10 @@
                             <td>{{ $trx->customer_name ?? '-' }}</td>
                             <td>{{ $trx->user->name ?? '-' }}</td>
                             @if(auth()->user()->isSuperAdmin())
-                                <td>{{ $trx->branch->name ?? '-' }}</td>
+                                <td>@include('partials._branch_badges', ['branches' => $trx->branches()])</td>
                             @endif
                             <td class="text-right text-danger font-weight-bold">
-                                Rp {{ number_format($trx->total, 0, ',', '.') }}
+                                Rp {{ number_format($trx->branch_total ?? $trx->total, 0, ',', '.') }}
                             </td>
                             <td>
                                 <a href="{{ route('transactions.show', $trx) }}" class="btn btn-info btn-xs">

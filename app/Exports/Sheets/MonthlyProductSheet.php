@@ -34,9 +34,9 @@ class MonthlyProductSheet implements FromCollection, WithHeadings, WithTitle, Wi
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('transactions.trx_date', [$start, $end])
             ->when(! $user->isSuperAdmin() && $user->branch_id,
-                fn($q) => $q->where('transactions.branch_id', $user->branch_id))
+                fn($q) => $q->where('transaction_items.branch_id', $user->branch_id))
             ->when($user->isSuperAdmin() && $branchId,
-                fn($q) => $q->where('transactions.branch_id', $branchId))
+                fn($q) => $q->where('transaction_items.branch_id', $branchId))
             ->when($userId,       fn($q) => $q->where('transactions.user_id', $userId))
             ->when($customerName, fn($q) => $q->where('transactions.customer_name', 'like', '%' . $customerName . '%'))
             ->selectRaw('products.name as product_name, products.barcode, products.unit,
