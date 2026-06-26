@@ -208,7 +208,9 @@ class ReportController extends Controller
                 categories.name as category_name,
                 SUM(transaction_items.qty) as total_qty,
                 SUM(transaction_items.buy_price * transaction_items.qty) as total_hpp,
-                SUM(transaction_items.subtotal) as total_revenue')
+                SUM(transaction_items.subtotal) as total_revenue,
+                SUM(CASE WHEN transactions.payment_status = "Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_lunas,
+                SUM(CASE WHEN transactions.payment_status = "Belum Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_tempo')
             ->groupBy('products.id', 'products.name', 'products.barcode', 'products.unit', 'categories.name')
             ->orderByDesc('total_revenue')
             ->get()
@@ -299,7 +301,9 @@ class ReportController extends Controller
             ->selectRaw('products.name as product_name, products.unit, categories.name as category_name,
                 SUM(transaction_items.qty) as total_qty,
                 SUM(transaction_items.buy_price * transaction_items.qty) as total_hpp,
-                SUM(transaction_items.subtotal) as total_revenue')
+                SUM(transaction_items.subtotal) as total_revenue,
+                SUM(CASE WHEN transactions.payment_status = "Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_lunas,
+                SUM(CASE WHEN transactions.payment_status = "Belum Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_tempo')
             ->groupBy('products.id', 'products.name', 'products.unit', 'categories.name')
             ->orderByDesc('total_revenue')
             ->get()

@@ -40,7 +40,9 @@ class DailyProductSheet implements FromCollection, WithHeadings, WithTitle, With
                 categories.name as category_name,
                 SUM(transaction_items.qty) as total_qty,
                 SUM(transaction_items.buy_price * transaction_items.qty) as total_hpp,
-                SUM(transaction_items.subtotal) as total_revenue')
+                SUM(transaction_items.subtotal) as total_revenue,
+                SUM(CASE WHEN transactions.payment_status = "Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_lunas,
+                SUM(CASE WHEN transactions.payment_status = "Belum Lunas" THEN transaction_items.subtotal ELSE 0 END) as revenue_tempo')
             ->groupBy('products.id', 'products.name', 'products.barcode', 'products.unit', 'categories.name')
             ->orderByDesc('total_revenue')
             ->get();
@@ -54,6 +56,8 @@ class DailyProductSheet implements FromCollection, WithHeadings, WithTitle, With
                 $p->barcode ?? '-',
                 $p->total_qty . ($p->unit ? ' ' . $p->unit : ''),
                 (float) $p->total_hpp,
+                (float) $p->revenue_lunas,
+                (float) $p->revenue_tempo,
                 (float) $p->total_revenue,
                 (float) $profit,
                 $p->total_revenue > 0 ? round($profit / $p->total_revenue * 100, 1) : 0,
@@ -62,12 +66,14 @@ class DailyProductSheet implements FromCollection, WithHeadings, WithTitle, With
 
         $totalHPP     = (float) $products->sum('total_hpp');
         $totalRevenue = (float) $products->sum('total_revenue');
+        $totalLunas   = (float) $products->sum('revenue_lunas');
+        $totalTempo   = (float) $products->sum('revenue_tempo');
         $totalProfit  = $totalRevenue - $totalHPP;
 
         $rows->push([
             '', 'TOTAL', '', '',
             $products->sum('total_qty'),
-            $totalHPP, $totalRevenue, $totalProfit,
+            $totalHPP, $totalLunas, $totalTempo, $totalRevenue, $totalProfit,
             $totalRevenue > 0 ? round($totalProfit / $totalRevenue * 100, 1) : 0,
         ]);
 
@@ -76,31 +82,38 @@ class DailyProductSheet implements FromCollection, WithHeadings, WithTitle, With
 
     public function headings(): array
     {
-        return ['#', 'Produk', 'Kategori', 'Barcode', 'Qty Terjual', 'HPP (Rp)', 'Pendapatan (Rp)', 'Keuntungan (Rp)', 'Margin (%)'];
+        return [
+            '#', 'Produk', 'Kategori', 'Barcode', 'Qty Terjual', 'HPP (Rp)',
+            'Pendapatan Lunas (Rp)', 'Pendapatan Tempo (Rp)', 'Total Pendapatan (Rp)',
+            'Keuntungan (Rp)', 'Margin (%)',
+        ];
     }
 
     public function title(): string { return 'Per Produk'; }
 
     public function columnWidths(): array
     {
-        return ['A' => 5, 'B' => 28, 'C' => 16, 'D' => 14, 'E' => 14, 'F' => 16, 'G' => 18, 'H' => 18, 'I' => 12];
+        return [
+            'A' => 5, 'B' => 28, 'C' => 16, 'D' => 14, 'E' => 14, 'F' => 16,
+            'G' => 18, 'H' => 18, 'I' => 18, 'J' => 18, 'K' => 12,
+        ];
     }
 
     public function styles(Worksheet $sheet)
     {
         $last = $sheet->getHighestRow();
 
-        $sheet->getStyle('A1:I1')->applyFromArray([
+        $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2C3E50']],
         ]);
-        $sheet->getStyle("A{$last}:I{$last}")->applyFromArray([
+        $sheet->getStyle("A{$last}:K{$last}")->applyFromArray([
             'font' => ['bold' => true],
             'borders' => ['top' => ['borderStyle' => Border::BORDER_MEDIUM]],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F2F2F2']],
         ]);
-        $sheet->getStyle("F2:I{$last}")->getAlignment()->setHorizontal('right');
-        $sheet->getStyle("F2:H{$last}")->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getStyle("I2:I{$last}")->getNumberFormat()->setFormatCode('0.0');
+        $sheet->getStyle("F2:K{$last}")->getAlignment()->setHorizontal('right');
+        $sheet->getStyle("F2:J{$last}")->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle("K2:K{$last}")->getNumberFormat()->setFormatCode('0.0');
     }
 }

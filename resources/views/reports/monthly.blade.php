@@ -234,7 +234,9 @@
                                 <th>Barcode</th>
                                 <th class="text-center">Qty Terjual</th>
                                 <th class="text-right">HPP</th>
-                                <th class="text-right">Pendapatan</th>
+                                <th class="text-right">Pendapatan (Lunas)</th>
+                                <th class="text-right">Pendapatan (Tempo)</th>
+                                <th class="text-right">Total Pendapatan</th>
                                 <th class="text-right">Keuntungan</th>
                                 <th class="text-center">Margin</th>
                             </tr>
@@ -248,6 +250,8 @@
                                     <td><code>{{ $p->barcode ?? '-' }}</code></td>
                                     <td class="text-center">{{ $p->total_qty }} {{ $p->unit }}</td>
                                     <td class="text-right text-secondary">Rp {{ number_format($p->total_hpp, 0, ',', '.') }}</td>
+                                    <td class="text-right text-success">Rp {{ number_format($p->revenue_lunas, 0, ',', '.') }}</td>
+                                    <td class="text-right text-warning">Rp {{ number_format($p->revenue_tempo, 0, ',', '.') }}</td>
                                     <td class="text-right">Rp {{ number_format($p->total_revenue, 0, ',', '.') }}</td>
                                     <td class="text-right {{ $p->total_profit >= 0 ? 'text-success' : 'text-danger' }} font-weight-bold">
                                         Rp {{ number_format($p->total_profit, 0, ',', '.') }}
@@ -259,7 +263,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="9" class="text-center text-muted py-4">Tidak ada data produk</td></tr>
+                                <tr><td colspan="11" class="text-center text-muted py-4">Tidak ada data produk</td></tr>
                             @endforelse
                         </tbody>
                         @if($productSummary->isNotEmpty())
@@ -268,6 +272,8 @@
                                 <th colspan="4" class="text-right">Total</th>
                                 <th class="text-center">{{ $productSummary->sum('total_qty') }}</th>
                                 <th class="text-right text-secondary">Rp {{ number_format($productSummary->sum('total_hpp'), 0, ',', '.') }}</th>
+                                <th class="text-right text-success">Rp {{ number_format($productSummary->sum('revenue_lunas'), 0, ',', '.') }}</th>
+                                <th class="text-right text-warning">Rp {{ number_format($productSummary->sum('revenue_tempo'), 0, ',', '.') }}</th>
                                 <th class="text-right">Rp {{ number_format($productSummary->sum('total_revenue'), 0, ',', '.') }}</th>
                                 <th class="text-right text-success font-weight-bold">Rp {{ number_format($productSummary->sum('total_profit'), 0, ',', '.') }}</th>
                                 <th></th>

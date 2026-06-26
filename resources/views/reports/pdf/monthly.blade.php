@@ -25,6 +25,7 @@
     .tc { text-align: center; }
     .green { color: #27AE60; }
     .red   { color: #C0392B; }
+    .amber { color: #B45309; }
     .muted { color: #7F8C8D; }
     .footer { margin-top: 14px; font-size: 8px; color: #aaa; text-align: right; border-top: 1px solid #eee; padding-top: 4px; }
 </style>
@@ -123,7 +124,9 @@
             <th>Kategori</th>
             <th class="tc">Qty</th>
             <th class="tr">HPP</th>
-            <th class="tr">Pendapatan</th>
+            <th class="tr">Pendapatan (Lunas)</th>
+            <th class="tr">Pendapatan (Tempo)</th>
+            <th class="tr">Total Pendapatan</th>
             <th class="tr">Keuntungan</th>
             <th class="tc">Margin</th>
         </tr>
@@ -136,12 +139,14 @@
                 <td>{{ $p->category_name ?? '-' }}</td>
                 <td class="tc">{{ $p->total_qty }} {{ $p->unit }}</td>
                 <td class="tr muted">Rp {{ number_format($p->total_hpp, 0, ',', '.') }}</td>
+                <td class="tr green">Rp {{ number_format($p->revenue_lunas, 0, ',', '.') }}</td>
+                <td class="tr amber">Rp {{ number_format($p->revenue_tempo, 0, ',', '.') }}</td>
                 <td class="tr">Rp {{ number_format($p->total_revenue, 0, ',', '.') }}</td>
                 <td class="tr {{ $p->total_profit >= 0 ? 'green' : 'red' }}">Rp {{ number_format($p->total_profit, 0, ',', '.') }}</td>
                 <td class="tc">{{ number_format($p->margin, 1) }}%</td>
             </tr>
         @empty
-            <tr><td colspan="8" style="text-align:center;color:#aaa;padding:10px;">Tidak ada data produk</td></tr>
+            <tr><td colspan="10" style="text-align:center;color:#aaa;padding:10px;">Tidak ada data produk</td></tr>
         @endforelse
     </tbody>
     @if($productSummary->isNotEmpty())
@@ -149,6 +154,8 @@
         @php
             $sumHPP    = $productSummary->sum('total_hpp');
             $sumRev    = $productSummary->sum('total_revenue');
+            $sumLunas  = $productSummary->sum('revenue_lunas');
+            $sumTempo  = $productSummary->sum('revenue_tempo');
             $sumProfit = $productSummary->sum('total_profit');
             $sumMargin = $sumRev > 0 ? $sumProfit / $sumRev * 100 : 0;
         @endphp
@@ -156,6 +163,8 @@
             <td colspan="3">TOTAL — {{ $productSummary->count() }} produk</td>
             <td class="tc">{{ $productSummary->sum('total_qty') }}</td>
             <td class="tr muted">Rp {{ number_format($sumHPP, 0, ',', '.') }}</td>
+            <td class="tr green">Rp {{ number_format($sumLunas, 0, ',', '.') }}</td>
+            <td class="tr amber">Rp {{ number_format($sumTempo, 0, ',', '.') }}</td>
             <td class="tr">Rp {{ number_format($sumRev, 0, ',', '.') }}</td>
             <td class="tr green">Rp {{ number_format($sumProfit, 0, ',', '.') }}</td>
             <td class="tc">{{ number_format($sumMargin, 1) }}%</td>
